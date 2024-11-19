@@ -826,6 +826,10 @@ module GCHPctmEnv_GridComp
       real(r8), pointer, dimension(:,:,:) :: SPHU0_EXPORT  => null()
 
       ! Pointers to imports
+      real,     pointer, dimension(:,:,:) :: MFX_IMPORT => null()
+      real,     pointer, dimension(:,:,:) :: MFY_IMPORT => null()
+      real,     pointer, dimension(:,:,:) :: CX_IMPORT  => null()
+      real,     pointer, dimension(:,:,:) :: CY_IMPORT  => null()
       real,     pointer, dimension(:,:,:) :: UA_IMPORT  => null()
       real,     pointer, dimension(:,:,:) :: VA_IMPORT  => null()
 
@@ -833,7 +837,6 @@ module GCHPctmEnv_GridComp
       real(r8), pointer, dimension(:,:,:) :: UpwardsMassFlux => null()
 
       ! Pointers to local arrays
-      real,     pointer, dimension(:,:,:) :: temp3d_r4 => null()
       real,     pointer, dimension(:,:,:) :: UC        => null()
       real,     pointer, dimension(:,:,:) :: VC        => null()
       real(r8), pointer, dimension(:,:,:) :: UCr8      => null()
@@ -868,29 +871,31 @@ module GCHPctmEnv_GridComp
          endif
 
          ! Get imports (real4) and copy to exports, converting to real8
-         call MAPL_GetPointer(IMPORT, temp3d_r4, 'MFXC',  RC=STATUS)
+         call MAPL_GetPointer(IMPORT, MFX_IMPORT, 'MFXC',  RC=STATUS)
          _VERIFY(STATUS)
-         if ( correct_mass_flux_for_humidity > 0 ) then
-            MFX_EXPORT = dble(temp3d_r4) / ( 1.d0 - SPHU0_EXPORT )
+         call MAPL_GetPointer(IMPORT, MFY_IMPORT, 'MFYC',  RC=STATUS)
+         _VERIFY(STATUS)
+         call MAPL_GetPointer(IMPORT, CX_IMPORT, 'CXC',  RC=STATUS)
+         _VERIFY(STATUS)
+         call MAPL_GetPointer(IMPORT, CY_IMPORT, 'CYC',  RC=STATUS)
+         _VERIFY(STATUS)
+
+         if (meteorology_vertical_index_is_top_down) then
+            MFX_EXPORT =  dble(MFX_IMPORT(:,:,:))
+            MFY_EXPORT =  dble(MFY_IMPORT(:,:,:))
+            CX_EXPORT  =  dble(CX_IMPORT(:,:,:))
+            CY_EXPORT  =  dble(CY_IMPORT(:,:,:))
          else
-            MFX_EXPORT = dble(temp3d_r4)
+            MFX_EXPORT =  dble(MFX_IMPORT(:,:,LM:1:-1))
+            MFY_EXPORT =  dble(MFY_IMPORT(:,:,LM:1:-1))
+            CX_EXPORT  =  dble(CX_IMPORT(:,:,LM:1:-1))
+            CY_EXPORT  =  dble(CY_IMPORT(:,:,LM:1:-1))
          endif
 
-         call MAPL_GetPointer(IMPORT, temp3d_r4, 'MFYC',  RC=STATUS)
-         _VERIFY(STATUS)
          if ( correct_mass_flux_for_humidity > 0 ) then
-            MFY_EXPORT = dble(temp3d_r4) / ( 1.d0 - SPHU0_EXPORT )
-         else
-            MFY_EXPORT = dble(temp3d_r4)
+            MFX_EXPORT = MFX_EXPORT / ( 1.d0 - SPHU0_EXPORT )
+            MFY_EXPORT = MFY_EXPORT / ( 1.d0 - SPHU0_EXPORT )
          endif
-
-         call MAPL_GetPointer(IMPORT, temp3d_r4, 'CXC',  RC=STATUS)
-         _VERIFY(STATUS)
-         CX_EXPORT = dble(temp3d_r4)
-
-         call MAPL_GetPointer(IMPORT, temp3d_r4, 'CYC',  RC=STATUS)
-         _VERIFY(STATUS)
-         CY_EXPORT = dble(temp3d_r4)
 
       else
 
@@ -963,10 +968,13 @@ module GCHPctmEnv_GridComp
       CX_EXPORT       => null()
       CY_EXPORT       => null()
       SPHU0_EXPORT    => null()
+      MFX_IMPORT      => null()
+      MFY_IMPORT      => null()
+      CX_IMPORT       => null()
+      CY_IMPORT       => null()
       UA_IMPORT       => null()
       VA_IMPORT       => null()
       UpwardsMassFlux => null()
-      temp3d_r4       => null()
       UC              => null()
       VC              => null()
       UCr8            => null()
